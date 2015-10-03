@@ -1,5 +1,6 @@
 import gtk
 import pygtk
+from sliderLogic import SliderLogic
 
 class SliderGUI():
 	def __init__(self, size, imagefilename):
@@ -13,6 +14,8 @@ class SliderGUI():
 		self.createMenu()
 		self.createGame()
 		self.window.show_all()
+		self.logic = SliderLogic(4)
+		self.updateDisplay()
 
 	def readImageFile(self, imagefilename):
 		self.image = gtk.Image()
@@ -60,13 +63,14 @@ class SliderGUI():
 		self.curx = 0
 		for ypos in range(self.size):
 			for xpos in range(self.size):
-				button = gtk.Button()
+				self.button = gtk.Button()
 				image = gtk.Image()
 				image.set_from_pixbuf(self.pixbufs[self.curx])
-				button.add(image)
-				self.buttons.append(button)
-				button.connect("clicked", self.clicked_handler, [xpos, ypos])
-				self.table.attach(button, xpos, xpos + 1, ypos, ypos + 1)
+				self.button.add(image)
+				self.images.append(image)
+				self.buttons.append(self.button)
+				self.button.connect("clicked", self.clicked_handler, self.curx)
+				self.table.attach(self.button, xpos, xpos + 1, ypos, ypos + 1)
 				self.curx += 1
 		self.main_vbox.pack_start(self.table)
 
@@ -78,17 +82,47 @@ class SliderGUI():
 		gtk.main_quit()
 
 	def restart_handler(self, widget, data):
-		print "restart"
+		self.logic.restart()
+		self.logic.shuffle(100)
+		self.updateDisplay()
 
 	def solve_handler(self, widget, data):
 		print "solve"
 
 	def clicked_handler(self, widget, data):
-		print "clicked"
-		print data
+		self.logic.takeTurn(data)
+		self.updateDisplay()
 
 	def run(self):
 		gtk.main()
+
+	def updateDisplay(self):
+		holePos = self.logic.holePos
+		for i in range(self.size**2):
+			if self.logic.list[i] == -1:
+				self.buttons[i].hide()
+			else:
+				self.buttons[i].show()
+				temp = self.logic.getCell(i)
+				pixbuf = self.pixbufs[temp]
+				curImg = self.images[i]
+				curImg.set_from_pixbuf(pixbuf)
+		count = 0
+		for i in self.logic.list:
+			if i == count:
+				count += 1
+			elif count >= 15:
+				dialog = gtk.Dialog("You Win!!")
+				dialog.add_button("Yay!", 1)
+				label = gtk.Label("Congratulations!! You beat the game in " + str(self.logic.countMoves) + " moves!!!")
+				dialog.vbox.pack_start(label)
+				dialog.vbox.show_all()
+				dialog.run()
+				dialog.destroy()
+
+			else:
+				count = 0
+				break
 
 def main():
 	s = SliderGUI(4, "smiley.gif")
