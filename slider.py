@@ -1,5 +1,4 @@
-import gtk
-import pygtk
+import gtk ,pygtk
 from sliderLogic import SliderLogic
 
 class SliderGUI():
@@ -14,15 +13,19 @@ class SliderGUI():
 		self.createMenu()
 		self.createGame()
 		self.window.show_all()
-		self.logic = SliderLogic(4)
+		self.logic = SliderLogic(self.size)
 		self.updateDisplay()
 
 	def readImageFile(self, imagefilename):
+		self.test = gtk.gdk.pixbuf_new_from_file_at_size(imagefilename, 300, 300)
 		self.image = gtk.Image()
-		self.image.set_from_file(imagefilename)
-		self.full_pixbuf = gtk.Image.get_pixbuf(self.image)
+		#self.image.set_from_file(imagefilename)
+		self.image.set_from_pixbuf(self.test)
+		#self.full_pixbuf = gtk.Image.get_pixbuf(self.image)
+		self.full_pixbuf = self.test
 		self.full_width = self.full_pixbuf.get_width()
 		self.full_height = self.full_pixbuf.get_height()
+		print self.full_width, self.full_height
 
 	def createWindow(self):
 		self.window = gtk.Window()
@@ -49,8 +52,9 @@ class SliderGUI():
 		self.main_vbox = gtk.VBox()
 		self.menu = gtk.Menu()
 		self.createMenuItem("New Game", self.restart_handler, 1)
-		self.createMenuItem("Solve", self.solve_handler, 2)
+		self.createMenuItem("Solve", self.solve_handler, 4)
 		self.createMenuItem("Quit", self.destroy_handler, 3)
+		self.createMenuItem("Choose Image", self.fileChooser, 2)
 		self.root_menu = gtk.MenuItem("Game")
 		self.root_menu.set_submenu(self.menu)
 		self.menuBar = gtk.MenuBar()
@@ -83,11 +87,15 @@ class SliderGUI():
 
 	def restart_handler(self, widget, data):
 		self.logic.restart()
-		self.logic.shuffle(100)
+		self.logic.shuffle(self.size * 25)
 		self.updateDisplay()
 
 	def solve_handler(self, widget, data):
 		print "solve"
+		self.logic.solveStep()
+		print "done"
+		self.updateDisplay()
+
 
 	def clicked_handler(self, widget, data):
 		self.logic.takeTurn(data)
@@ -111,7 +119,7 @@ class SliderGUI():
 		for i in self.logic.list:
 			if i == count:
 				count += 1
-			elif count >= 15:
+			elif count >= self.size**2-1:
 				dialog = gtk.Dialog("You Win!!")
 				dialog.add_button("Yay!", 1)
 				label = gtk.Label("Congratulations!! You beat the game in " + str(self.logic.countMoves) + " moves!!!")
@@ -124,7 +132,38 @@ class SliderGUI():
 				count = 0
 				break
 
+	def fileChooser(self, widget, event):
+		print "choose"
+
+		dialog = gtk.FileChooserDialog("Open...", None,
+			gtk.FILE_CHOOSER_ACTION_OPEN,
+			(gtk.STOCK_CANCEL, gtk. RESPONSE_CANCEL,
+			gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+
+		dialog.set_default_response(gtk.RESPONSE_OK)
+		filter = gtk.FileFilter()
+		filter.set_name("Images")
+		filter.add_mime_type("image/png")
+		filter.add_mime_type("image/gif")
+		filter.add_mime_type("image/jpeg")
+		filter.add_pattern("*.png")
+		filter.add_pattern("*.gif")
+		filter.add_pattern("*.jpg")
+		filter.add_pattern("*.jpeg")
+		dialog.add_filter(filter)
+
+		self.response = dialog.run()
+		if self.response == gtk.RESPONSE_OK:
+			print self.response
+			self.window.destroy()
+			self.__init__(self.size, dialog.get_filename())
+		elif self.response == gtk.RESPONSE_CANCEL:
+			print "No file chosen!"
+
+		dialog.destroy()
+
 def main():
-	s = SliderGUI(4, "smiley.gif")
+	size = 5
+	s = SliderGUI(size, "smiley.gif")
 	s.run()
 main()
